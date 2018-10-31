@@ -1,0 +1,7 @@
+*~
+.*.swp
+*.pyc
+*.egg-info
+.DS_Store
+.tox
+.pytest_cache

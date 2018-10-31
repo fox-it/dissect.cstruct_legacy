@@ -1,0 +1,3 @@
+struct test {
+    uint32  a;
+};
