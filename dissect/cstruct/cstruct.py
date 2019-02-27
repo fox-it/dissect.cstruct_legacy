@@ -401,7 +401,7 @@ class CStyleParser(Parser):
 
     def _parse_fields(self, s):
         fields = re.finditer(
-            r'(?P<type>[^\s]+)\s+(?P<name>[^\s\[:]+)(:(?P<bits>\d+))?(\[(?P<count>[^;\n]*)\])?;',
+            r'(?P<type>[^\s]+)\s+(?P<name>[^\s\[:]+)(\s*:\s*(?P<bits>\d+))?(\[(?P<count>[^;\n]*)\])?;',
             s,
         )
         r = []
