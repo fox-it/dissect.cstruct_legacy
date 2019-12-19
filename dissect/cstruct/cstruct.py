@@ -368,7 +368,7 @@ class CStyleParser(Parser):
     def _structs(self, data):
         compiler = Compiler(self.cstruct)
         r = re.finditer(
-            r'(#(?P<flags>(?:compile))\s+)?((?P<typedef>typedef)\s+)?(?P<type>[^\s]+)\s+(?P<name>[^\s]+)?(?P<fields>\s*\{[^}]+\}(?P<defs>\s+[^;\n]+)?)?\s*;',
+            r'(#(?P<flags>(?:compile))\s+)?((?P<typedef>typedef)\s+)?(?P<type>[^\s]+)\s+(__attribute__\(\([^)]+\)\)\s*)?(?P<name>[^\s]+)?(?P<fields>\s*\{[^}]+\}(?P<defs>\s+[^;\n]+)?)?\s*;',
             data,
         )
         for t in r:
