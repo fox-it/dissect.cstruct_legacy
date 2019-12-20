@@ -32,6 +32,7 @@ import struct
 import ctypes as _ctypes
 from io import BytesIO
 from collections import OrderedDict
+import json
 
 try:
     from builtins import bytes as newbytes
@@ -985,7 +986,7 @@ class Array(BaseType):
         When using the default C-style parser, the following syntax is supported:
 
             x[3] -> 3 -> static length.
-            x[] -> None -> null-terminated.
+            x[] -> None -> length to the end of data buf (VLA/VSA).
             x[expr] -> expr -> dynamic length.
     """
 
@@ -1522,14 +1523,30 @@ class Compiler(object):
                         num = 'max(0, Expression(self.cstruct, "{expr}").evaluate(r))'.format(
                             expr=num.expr
                         )
-
-                    struct_read += (
-                        'r["{name}"] = []\n'
-                        'for _ in xrange({num}):\n'
-                        '    r["{name}"].append(self.cstruct.{struct_name}._read(stream))\n'.format(
-                            name=field.name, num=num, struct_name=ft.type.name
+                    if ft.dynamic:
+                        struct_read += (
+                            'r["{name}"] = []\n'
+                            'while True:\n'
+                            '    bufSize = stream.getbuffer().nbytes\n'
+                            '    bufPos = stream.tell()\n'
+                            '    try:'
+                            '       a = self.cstruct.{struct_name}._read(stream)\n'
+                            '    except:\n'
+                            '       if bufSize == bufPos:\n'
+                            '           break;\n'
+                            '       raise EOFError()\n'
+                            '    r["{name}"].append(a)\n'.format(
+                                name=field.name, num=num, struct_name=ft.type.name
+                            )
                         )
-                    )
+                    else:
+                        struct_read += (
+                            'r["{name}"] = []\n'
+                            'for _ in xrange({num}):\n'
+                            '    r["{name}"].append(self.cstruct.{struct_name}._read(stream))\n'.format(
+                                name=field.name, num=num, struct_name=ft.type.name
+                            )
+                        )
                 else:
                     struct_read += 'r["{name}"] = self.cstruct.{struct_name}._read(stream)\n'.format(
                         name=field.name, struct_name=ft.name
@@ -1713,14 +1730,14 @@ class Compiler(object):
         t = field.type.type
         reader = None
 
-        if not field.type.count:  # Null terminated
+        if not field.type.count:  #To the end of buffer
             if isinstance(t, PackedType):
                 reader = (
                     't = []\nwhile True:\n'
                     '    d = stream.read({size})\n'
+                    '    if len(d) == 0: break\n'
                     '    if len(d) != {size}: raise EOFError()\n'
                     '    v = struct.unpack(self.cstruct.endian + "{packchar}", d)[0]\n'
-                    '    if v == 0: break\n'
                     '    t.append(v)'.format(size=t.size, packchar=t.packchar)
                 )
 
@@ -1743,9 +1760,9 @@ class Compiler(object):
                     't = []\n'
                     'while True:\n'
                     '    d = stream.read({size})\n'
+                    '    if len(d) == 0: break\n'
                     '    if len(d) != {size}: raise EOFError()\n'
                     '    v = BytesInteger.parse(d, {size}, 1, {signed}, self.cstruct.endian)\n'
-                    '    if v == 0: break\n'
                     '    t.append(v)'.format(size=t.size, signed=t.signed)
                 )
 
@@ -1892,3 +1909,17 @@ def dumpstruct(t, data=None, offset=0):
     hexdump(data, palette, offset=offset)
     print()
     print(out)
+
+def serialize(ft):
+    if isinstance(ft, Instance):
+        newDict = {}
+        newDict['_type'] = str(ft._type.name)
+        newDict['_values'] = ft._values
+        newDict['_sizes'] = ft._sizes
+        return newDict
+
+def dumpstructjson(ft):
+    return json.dumps(ft, default=serialize)
+
+def loadstructjson(ft):
+    return json.loads(dumpstructjson(ft))
