@@ -1381,6 +1381,9 @@ class EnumInstance(object):
     def __repr__(self):
         return '<{}.{}: {}>'.format(self.enum.name, self.name, self.value)
 
+    def __call__(self):
+        return self.value
+
 
 class Union(RawType):
     def __init__(self, cstruct):
