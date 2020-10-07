@@ -74,6 +74,55 @@ assert cs.uint24[2](b'\x01\x00\x00\x02\x00\x00') == [1, 2]  # You can also parse
 assert cs.char[None](b'hello world!\x00') == b'hello world!'  # A list index of None means null terminated
 ```
 
+### Unions and nested structures
+Unions and nested structures are support, both anonymous and named.
+
+```python
+cdef = """
+struct test_union {
+    char magic[4];
+    union {
+        struct {
+            uint32 a;
+            uint32 b;
+        } a;
+        struct {
+            char   b[8];
+        } b;
+    } c;
+};
+
+struct test_anonymous {
+    char magic[4];
+    struct {
+        uint32 a;
+        uint32 b;
+    };
+    struct {
+        char   c[8];
+    };
+};
+"""
+c = cstruct.cstruct()
+c.load(cdef)
+
+assert len(c.test_union) == 12
+
+a = c.test_union(b'ohaideadbeef')
+assert a.magic == b'ohai'
+assert a.c.a.a == 0x64616564
+assert a.c.a.b == 0x66656562
+assert a.c.b.b == b'deadbeef'
+
+assert a.dumps() == b'ohaideadbeef'
+
+b = c.test_anonymous(b'ohai\x39\x05\x00\x00\x28\x23\x00\x00deadbeef')
+assert b.magic == b'ohai'
+assert b.a == 1337
+assert b.b == 9000
+assert b.c == b'deadbeef'
+```
+
 ### Parse bit fields
 Bit fields are supported as part of structures. They are properly aligned to their boundaries.
 
@@ -109,7 +158,3 @@ You can implement your own types by subclassing `BaseType` or `RawType`, and add
 
 ### Custom definition parsers
 Don't like the C-like definition syntax? Write your own syntax parser!
-
-## Todo
-- Nested structure definitions
-- Unions

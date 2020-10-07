@@ -1,5 +1,6 @@
 import sys
-from dissect import cstruct
+
+from dissect.cstruct import cstruct, dumpstruct
 
 disk_def = """
 #define MAX_MBR_CODE_SIZE 0x1b6
@@ -75,7 +76,7 @@ struct GPT_PARTITION {
 // 56 (0x38)   72 bytes    Partition name (36 UTF-16LE code units)
 """
 
-c_disk = cstruct.cstruct()
+c_disk = cstruct()
 c_disk.load(disk_def)
 
 SECTOR_SIZE = 512
@@ -91,23 +92,28 @@ class Partition(object):
         self.guid = guid
 
     def __repr__(self):
-        return "<Partition offset=0x{:x} size=0x{:x} type={} name={}>".format(self.offset, self.size, self.type, self.name)
+        return "<Partition offset=0x{:x} size=0x{:x} type={} name={}>".format(
+            self.offset,
+            self.size,
+            self.type,
+            self.name
+        )
 
 
-def partitions(fh, mbr, offset):
-    for p in mbr.part:
-        part_offset = offset + p.sector_ofs * SECTOR_SIZE
+def partitions(fh_part, mbr_part, offset):
+    for mbr_p in mbr_part.part:
+        part_offset = offset + mbr_p.sector_ofs * SECTOR_SIZE
 
-        if p.type == 0x00:
+        if mbr_p.type == 0x00:
             continue
 
-        if p.type == 0x05:
-            fh.seek(part_offset)
-            e_mbr = c_disk.mbr(fh)
-            for part in partitions(fh, e_mbr, part_offset):
-                yield part
+        if mbr_p.type == 0x05:
+            fh_part.seek(part_offset)
+            e_mbr = c_disk.mbr(fh_part)
+            for y_part in partitions(fh_part, e_mbr, part_offset):
+                yield y_part
 
-        yield Partition(fh, part_offset, p.sector_size * SECTOR_SIZE, p.type, None)
+        yield Partition(fh_part, part_offset, mbr_p.sector_size * SECTOR_SIZE, mbr_p.type, None)
 
 
 if __name__ == '__main__':
@@ -120,13 +126,13 @@ if __name__ == '__main__':
     if mbr.bootsig != 0xaa55:
         sys.exit("Not a valid MBR")
 
-    cstruct.dumpstruct(mbr)
+    dumpstruct(mbr)
 
     for p in partitions(fh, mbr, 0):
         if p.type == 0xee:
             fh.seek(p.offset)
             gpt = c_disk.GPT_HEADER(fh)
-            cstruct.dumpstruct(gpt)
+            dumpstruct(gpt)
 
             fh.seek(gpt.lba_partition_array * SECTOR_SIZE)
             for _ in range(gpt.partition_table_count):

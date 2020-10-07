@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-from dissect import cstruct
+from dissect.cstruct import cstruct, dumpstruct
+
 import socket
 import struct
 
-protocol = cstruct.cstruct()
+protocol = cstruct()
 
 protocol.load("""
 enum AttackType : uint8 {
@@ -49,4 +50,4 @@ if __name__ == '__main__':
     for o in record.attack_options:
         print('OPTION: {} - {}'.format(o.type, o.value))
 
-    cstruct.dumpstruct(protocol.MiraiAttack, data)
+    dumpstruct(protocol.MiraiAttack, data)

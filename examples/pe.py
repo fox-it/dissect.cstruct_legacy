@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
-from dissect import cstruct
+
+from dissect.cstruct import cstruct, dumpstruct
 
 PE_DEF = """
 #define IMAGE_NUMBEROF_DIRECTORY_ENTRIES 16
@@ -125,7 +126,7 @@ typedef struct _IMAGE_SECTION_HEADER {
 } IMAGE_SECTION_HEADER;
 """
 
-pestruct = cstruct.cstruct()
+pestruct = cstruct()
 pestruct.load(PE_DEF)
 
 
@@ -150,10 +151,10 @@ if __name__ == '__main__':
     else:
         optional_header = pestruct.IMAGE_OPTIONAL_HEADER(fh)
 
-    cstruct.dumpstruct(mz)
-    cstruct.dumpstruct(file_header)
-    cstruct.dumpstruct(optional_header)
+    dumpstruct(mz)
+    dumpstruct(file_header)
+    dumpstruct(optional_header)
 
     sections = [pestruct.IMAGE_SECTION_HEADER(fh) for _ in range(file_header.NumberOfSections)]
     for s in sections:
-        cstruct.dumpstruct(s)
+        dumpstruct(s)

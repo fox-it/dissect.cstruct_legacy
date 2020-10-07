@@ -1,0 +1,2 @@
+exclude .gitignore
+exclude .gitlab-ci.yml
