@@ -1,3 +1,5 @@
+**Something new coming soon**
+
 # dissect.cstruct
 Structure parsing in Python made easy. With cstruct, you can write C-like structures and use them to parse binary data, either as file-like objects or bytestrings.
 
